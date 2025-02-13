@@ -3,40 +3,44 @@ Import-Module Pode
 Import-Module Pode.Web
 
 # Define the Pode server
-Start-PodeServer -Port 8080 -ScriptBlock {
-    # Add a route for the admin page
-    Add-PodeRoute -Method Get -Path '/' -ScriptBlock {
-        Get-PodeWebFile -Path 'index.html'
-    }
+Start-PodeServer {
+    Add-PodeEndpoint -Address localhost -Port 8080 -Protocol Http
 
-    # Add a route to handle form submissions
-    Add-PodeRoute -Method Post -Path '/update-config' -ScriptBlock {
-        param($WebEvent)
+    Use-PodeWebTemplates -Title 'Nginx Config Admin' -Theme Dark
 
-        # Process the form data and update the Nginx config
-        $formData = $WebEvent.Data
-        $upstreamName = $formData.upstreamName
-        $serverList = $formData.serverList -split ','
+    Add-PodeWebPage -Name 'Load Balancing' -Icon 'Settings' -ScriptBlock {
+        New-PodeWebForm -Name 'Update Nginx Config' -ScriptBlock {
+            New-PodeWebTextbox -Name 'Upstream Name' -Id 'upstreamName' -Placeholder 'Enter upstream name' -Required
+            New-PodeWebTextbox -Name 'Server List' -Id 'serverList' -Placeholder 'Enter server list (comma-separated)' -Required
+            New-PodeWebButton -Name 'Update Configuration' -Type Submit
+        } -OnSubmit {
+            param($WebEvent)
 
-        # Path to the Nginx config file
-        $nginxConfigPath = '/etc/nginx/nginx.conf'
+            # Process the form data and update the Nginx config
+            $formData = $WebEvent.Data
+            $upstreamName = $formData.upstreamName
+            $serverList = $formData.serverList -split ','
 
-        # Read the current Nginx config
-        $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
+            # Path to the Nginx config file
+            $nginxConfigPath = '/etc/nginx/nginx.conf'
 
-        # Update the upstream block in the Nginx config
-        $upstreamBlock = "upstream $upstreamName {
+            # Read the current Nginx config
+            $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
+
+            # Update the upstream block in the Nginx config
+            $upstreamBlock = "upstream $upstreamName {
 " + ($serverList | ForEach-Object { "    server $_;" }) + "
 }"
-        $nginxConfig = [regex]::Replace($nginxConfig, "upstream $upstreamName {.*?}", $upstreamBlock, 'Singleline')
+            $nginxConfig = [regex]::Replace($nginxConfig, "upstream $upstreamName {.*?}", $upstreamBlock, 'Singleline')
 
-        # Write the updated config back to the file
-        Set-Content -Path $nginxConfigPath -Value $nginxConfig
+            # Write the updated config back to the file
+            Set-Content -Path $nginxConfigPath -Value $nginxConfig
 
-        # Reload Nginx to apply the changes
-        Invoke-Expression 'nginx -s reload'
+            # Reload Nginx to apply the changes
+            Invoke-Expression 'nginx -s reload'
 
-        # Return a success message
-        Write-PodeJsonResponse -Value @{ message = 'Configuration updated successfully' }
+            # Return a success message
+            Show-PodeWebToast -Message 'Configuration updated successfully' -Type Success
+        }
     }
 }
