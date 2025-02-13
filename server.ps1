@@ -16,31 +16,42 @@ Start-PodeServer {
         } -OnSubmit {
             param($WebEvent)
 
-            # Process the form data and update the Nginx config
-            $formData = $WebEvent.Data
-            $upstreamName = $formData.upstreamName
-            $serverList = $formData.serverList -split ','
+            try {
+                # Process the form data and update the Nginx config
+                $formData = $WebEvent.Data
+                $upstreamName = $formData.upstreamName
+                $serverList = $formData.serverList -split ','
 
-            # Path to the Nginx config file
-            $nginxConfigPath = '/etc/nginx/nginx.conf'
+                Write-Host "Received form data: UpstreamName=$upstreamName, ServerList=$($serverList -join ',')"
 
-            # Read the current Nginx config
-            $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
+                # Path to the Nginx config file
+                $nginxConfigPath = '/etc/nginx/nginx.conf'
 
-            # Update the upstream block in the Nginx config
-            $upstreamBlock = "upstream $upstreamName {
+                # Read the current Nginx config
+                $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
+                Write-Host "Read Nginx config from $nginxConfigPath"
+
+                # Update the upstream block in the Nginx config
+                $upstreamBlock = "upstream $upstreamName {
 " + ($serverList | ForEach-Object { "    server $_;" }) + "
 }"
-            $nginxConfig = [regex]::Replace($nginxConfig, "upstream $upstreamName {.*?}", $upstreamBlock, 'Singleline')
+                $nginxConfig = [regex]::Replace($nginxConfig, "upstream $upstreamName {.*?}", $upstreamBlock, 'Singleline')
+                Write-Host "Updated upstream block in Nginx config"
 
-            # Write the updated config back to the file
-            Set-Content -Path $nginxConfigPath -Value $nginxConfig
+                # Write the updated config back to the file
+                Set-Content -Path $nginxConfigPath -Value $nginxConfig
+                Write-Host "Wrote updated Nginx config to $nginxConfigPath"
 
-            # Reload Nginx to apply the changes
-            Invoke-Expression 'nginx -s reload'
+                # Reload Nginx to apply the changes
+                Invoke-Expression 'nginx -s reload'
+                Write-Host "Reloaded Nginx"
 
-            # Return a success message
-            Show-PodeWebToast -Message 'Configuration updated successfully' -Type Success
+                # Return a success message
+                Show-PodeWebToast -Message 'Configuration updated successfully' -Type Success
+            } catch {
+                Write-Host "Error: $_"
+                Show-PodeWebToast -Message "Error: $_" -Type Error
+            }
         }
     }
 }
