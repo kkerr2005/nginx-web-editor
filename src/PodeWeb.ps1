@@ -1,8 +1,8 @@
 function Start-PodeWeb {
-    $port = 8080
+    $p
     $webRoot = Join-Path -Path $PSScriptRoot -ChildPath 'public'
 
-    Start-PodeServer -Port $port -ScriptBlock {
+    Start-PodeServer -ScriptBlock {
         # Define routes
         Add-PodeRoute -Method GET -Path '/' -ScriptBlock {
             Send-PodeFile -Path 'index.html' -Root $webRoot
@@ -22,7 +22,8 @@ function Start-PodeWeb {
             $result = Update-NginxConfig -ConfigData $body
             if ($result) {
                 Send-PodeResponse -Status 200 -Body 'Configuration updated successfully'
-            } else {
+            }
+            else {
                 Send-PodeResponse -Status 500 -Body 'Failed to update configuration'
             }
         }
