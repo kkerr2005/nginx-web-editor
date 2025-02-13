@@ -28,8 +28,13 @@ Start-PodeServer {
                 $nginxConfigPath = '/etc/nginx/nginx.conf'
 
                 # Read the current Nginx config
-                $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
-                Write-Host "Read Nginx config from $nginxConfigPath"
+                if (Test-Path $nginxConfigPath) {
+                    $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
+                    Write-Host "Read Nginx config from $nginxConfigPath"
+                }
+                else {
+                    throw "Nginx config file not found at $nginxConfigPath"
+                }
 
                 # Update the upstream block in the Nginx config
                 $upstreamBlock = "upstream $upstreamName {" + ($serverList | ForEach-Object { "    server $_;" }) + "}"
@@ -46,6 +51,36 @@ Start-PodeServer {
 
                 # Return a success message
                 Show-PodeWebToast -Message 'Configuration updated successfully' -Type Success
+            }
+            catch {
+                Write-Host "Error: $_"
+                Show-PodeWebToast -Message "Error: $_" -Type Error
+            }
+        }
+    }
+
+    Add-PodeWebPage -Name 'View Nginx Config' -Icon 'File' -ScriptBlock {
+        New-PodeWebTextbox -Name 'Nginx Config' -Id 'nginxConfig' -Placeholder 'Nginx config will be displayed here' -Disabled
+        New-PodeWebButton -Name 'Load Config' -Type Button -OnClick {
+            try {
+                # Path to the Nginx config file
+                $nginxConfigPath = '/etc/nginx/nginx.conf'
+
+                # Read the current Nginx config
+                if (Test-Path $nginxConfigPath) {
+                    $nginxConfig = Get-Content -Path $nginxConfigPath -Raw
+                    Write-Host "Read Nginx config from $nginxConfigPath"
+
+                    # Convert the Nginx config to JSON
+                    $nginxConfigJson = ConvertTo-Json -InputObject $nginxConfig
+                    Write-Host "Converted Nginx config to JSON"
+
+                    # Display the JSON in the textbox
+                    Set-PodeWebTextbox -Id 'nginxConfig' -Value $nginxConfigJson
+                }
+                else {
+                    throw "Nginx config file not found at $nginxConfigPath"
+                }
             }
             catch {
                 Write-Host "Error: $_"
