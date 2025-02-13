@@ -32,9 +32,7 @@ Start-PodeServer {
                 Write-Host "Read Nginx config from $nginxConfigPath"
 
                 # Update the upstream block in the Nginx config
-                $upstreamBlock = "upstream $upstreamName {
-" + ($serverList | ForEach-Object { "    server $_;" }) + "
-}"
+                $upstreamBlock = "upstream $upstreamName {" + ($serverList | ForEach-Object { "    server $_;" }) + "}"
                 $nginxConfig = [regex]::Replace($nginxConfig, "upstream $upstreamName {.*?}", $upstreamBlock, 'Singleline')
                 Write-Host "Updated upstream block in Nginx config"
 
@@ -48,7 +46,8 @@ Start-PodeServer {
 
                 # Return a success message
                 Show-PodeWebToast -Message 'Configuration updated successfully' -Type Success
-            } catch {
+            }
+            catch {
                 Write-Host "Error: $_"
                 Show-PodeWebToast -Message "Error: $_" -Type Error
             }
