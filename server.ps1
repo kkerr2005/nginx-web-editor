@@ -4,7 +4,7 @@ Import-Module Pode.Web
 
 # Define the Pode server
 Start-PodeServer {
-    Add-PodeEndpoint -Address localhost -Port 8080 -Protocol Http
+    Add-PodeEndpoint -Address * -Port 8080 -Protocol Http
 
     Use-PodeWebTemplates -Title 'Nginx Config Admin' -Theme Dark
 
