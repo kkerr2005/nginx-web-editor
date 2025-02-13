@@ -88,4 +88,7 @@ Start-PodeServer {
             }
         }
     }
+
+    # Add logging to the console
+    Write-Host "Pode server started on port 8080"
 }
